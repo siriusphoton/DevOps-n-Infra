@@ -71,3 +71,33 @@ resource "aws_s3_bucket_policy" "public_read" {
   depends_on = [aws_s3_bucket_public_access_block.public_access]
 
 }
+
+# ... (Keep your existing bucket resources) ...
+
+
+
+# Automated Upload of the Index File
+
+resource "aws_s3_object" "upload_index" {
+
+  bucket = aws_s3_bucket.help_site.id
+
+  key = "index.html"
+
+  source = "../help-site/index.html" # Path relative to terraform/ folder
+
+  content_type = "text/html"
+
+  etag = filemd5("../help-site/index.html") # Triggers update if file changes
+
+}
+
+
+
+# Output the URL so you can click it immediately
+
+output "website_url" {
+
+  value = aws_s3_bucket_website_configuration.site_config.website_endpoint
+
+}
