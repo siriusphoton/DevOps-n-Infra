@@ -1,0 +1,115 @@
+---
+
+- name: Configure SecureDoc Web Server
+
+  hosts: webservers
+
+  become: yes
+
+  
+
+  tasks:
+
+    - name: Update apt cache
+
+      apt:
+
+        update_cache: yes
+
+
+
+    - name: Install Python and Pip
+
+      apt:
+
+        name: 
+
+          - python3-pip
+
+          - python3-venv
+
+        state: present
+
+
+
+    - name: Install Flask and Boto3
+
+      pip:
+
+        name: 
+
+          - flask
+
+          - boto3
+
+          - gunicorn
+
+        break_system_packages: true
+
+
+
+    - name: Create App Directory
+
+      file:
+
+        path: /var/www/html/app
+
+        state: directory
+
+        mode: '0755'
+
+        owner: ubuntu
+
+
+
+    - name: Copy App Files
+
+      copy:
+
+        src: ../app/
+
+        dest: /var/www/html/app/
+
+
+
+    # Project 5 Requirement: Create Maintenance User
+
+    - name: Create Maintenance User
+
+      user:
+
+        name: maintenance
+
+        shell: /bin/bash
+
+
+
+    # Secure the file so Maintenance user cannot edit it (Project 5)
+
+    - name: Secure App Code
+
+      file:
+
+        path: /var/www/html/app/app.py
+
+        owner: root
+
+        group: root
+
+        mode: '0644'
+
+
+
+    - name: Start App (Simple Background Task)
+
+      shell: |
+
+        nohup python3 app.py > app.log 2>&1 &
+
+      args:
+
+        chdir: /var/www/html/app
+
+      async: 45
+
+      poll: 0
