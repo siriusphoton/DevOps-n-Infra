@@ -154,9 +154,9 @@ resource "local_file" "ssh_key" {
 
 resource "aws_instance" "web" {
 
-  ami = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS (US-East-1)
+  ami = "ami-0b6c6ebed2801a5cb" # Ubuntu 22.04 LTS (US-East-1)
 
-  instance_type = "t2.micro"
+  instance_type = "t3.micro"
 
   subnet_id = aws_subnet.public.id
 
