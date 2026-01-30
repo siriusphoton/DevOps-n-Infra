@@ -130,3 +130,9 @@ resource "aws_security_group" "lb_sg" {
   }
 
 }
+
+output "app_alb" {
+
+  value = aws_lb.app_lb.dns_name
+
+}
