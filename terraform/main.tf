@@ -71,7 +71,7 @@ resource "aws_security_group" "web_sg" {
   vpc_id = aws_vpc.main.id
 
 
-
+  /*
   ingress {
 
     from_port = 22
@@ -83,7 +83,7 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"] # Open SSH (In real life, restrict this IP)
 
   }
-
+*/
 
 
   ingress {

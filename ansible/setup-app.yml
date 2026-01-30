@@ -6,7 +6,7 @@
 
   become: yes
 
-  
+
 
   tasks:
 
@@ -32,22 +32,6 @@
 
 
 
-    - name: Install Flask and Boto3
-
-      pip:
-
-        name: 
-
-          - flask
-
-          - boto3
-
-          - gunicorn
-
-        break_system_packages: true
-
-
-
     - name: Create App Directory
 
       file:
@@ -59,6 +43,32 @@
         mode: '0755'
 
         owner: ubuntu
+
+
+
+    - name: Create App Virtual Environment
+
+      command: python3 -m venv /var/www/html/app/venv
+
+      args:
+
+        creates: /var/www/html/app/venv  # Only runs if the venv folder doesn't exist
+
+
+
+    - name: Install Flask and Boto3 in Venv
+
+      pip:
+
+        name: 
+
+          - flask
+
+          - boto3
+
+          - gunicorn
+
+        virtualenv: /var/www/html/app/venv  # This is the "magic" line that fixes your error
 
 
 
@@ -100,11 +110,13 @@
 
 
 
-    - name: Start App (Simple Background Task)
+    - name: Start App (Using Venv Python)
 
       shell: |
 
-        nohup python3 app.py > app.log 2>&1 &
+        # We call the python binary directly from the venv
+
+        nohup /var/www/html/app/venv/bin/python3 app.py > app.log 2>&1 &
 
       args:
 
