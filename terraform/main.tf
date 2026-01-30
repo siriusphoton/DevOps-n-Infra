@@ -24,6 +24,19 @@ resource "aws_subnet" "public" {
 
 }
 
+# Add this under your existing subnet
+
+resource "aws_subnet" "public_2" {
+
+  vpc_id = aws_vpc.main.id
+
+  cidr_block = "10.0.2.0/24"
+
+  map_public_ip_on_launch = true
+
+  availability_zone = "us-east-1b" # Different AZ
+
+}
 
 
 resource "aws_internet_gateway" "gw" {
@@ -58,6 +71,10 @@ resource "aws_route_table_association" "public_assoc" {
 
 }
 
+resource "aws_route_table_association" "public_assoc_2" {
+  subnet_id      = aws_subnet.public_2.id
+  route_table_id = aws_route_table.public_rt.id
+}
 
 
 # 2. SECURITY GROUP (Firewall)
@@ -154,7 +171,8 @@ resource "local_file" "ssh_key" {
 
 resource "aws_instance" "web" {
 
-  ami = "ami-0b6c6ebed2801a5cb" # Ubuntu 22.04 LTS (US-East-1)
+  count = 2
+  ami   = "ami-0b6c6ebed2801a5cb" # Ubuntu 22.04 LTS (US-East-1)
 
   instance_type = "t3.micro"
 
@@ -172,7 +190,9 @@ resource "aws_instance" "web" {
 
 
 
-  tags = { Name = "SecureDoc-Server-1" }
+  tags = {
+    Name = "${var.project_name}-Server-${count.index + 1}" # Names them Server-1, Server-2
+  }
 
 }
 
@@ -180,8 +200,14 @@ resource "aws_instance" "web" {
 
 # 5. OUTPUTS
 
-output "server_public_ip" {
+output "instance_summary" {
 
-  value = aws_instance.web.public_ip
+  value = {
+
+    for i in range(length(aws_instance.web)) :
+
+    aws_instance.web[i].id => aws_instance.web[i].public_ip
+
+  }
 
 }
