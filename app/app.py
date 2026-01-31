@@ -2,58 +2,111 @@ import boto3
 
 import os
 
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, Response
 
 from werkzeug.utils import secure_filename
+
+from functools import wraps
 
 
 
 app = Flask(__name__)
 
 
+
 s3 = boto3.client('s3')
 
 
-# CONFIGURATION
 
-# We will use the Bucket Name from an Environment Variable (Best Practice)
+# --- AUTHENTICATION LOGIC START ---
 
-# or fallback to listing buckets if not set (Lazy discovery)
+def check_auth(username, password):
 
+    """Check if a username/password combination is valid."""
+
+    # In a real app, use Hashicorp Vault or AWS Secrets Manager.
+
+    # For this Capstone, hardcoding or using Env Vars is fine.
+
+    return username == 'sreesai' and password == 'adminisreesai#123'
+
+
+
+def authenticate():
+
+    """Sends a 401 response that enables basic auth"""
+
+    return Response(
+
+    'Could not verify your access level for that URL.\n'
+
+    'You have to login with proper credentials', 401,
+
+    {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+
+
+def requires_auth(f):
+
+    @wraps(f)
+
+    def decorated(*args, **kwargs):
+
+        auth = request.authorization
+
+        if not auth or not check_auth(auth.username, auth.password):
+
+            return authenticate()
+
+        return f(*args, **kwargs)
+
+    return decorated
+
+# --- AUTHENTICATION LOGIC END ---
 
 
 
 def get_bucket_name():
 
-    # Find the bucket that starts with "secure-doc-storage"
-    buckets = s3.list_buckets()
+    # Helper to find the bucket dynamically
 
-    for b in buckets['Buckets']:
+    try:
 
-        if "secure-doc-storage" in b['Name']:
+        buckets = s3.list_buckets()
 
-            return b['Name']
+        for b in buckets['Buckets']:
+
+            if "secure-doc-storage" in b['Name']:
+
+                return b['Name']
+
+    except Exception as e:
+
+        print(f"Error accessing S3: {e}")
+
+        return None
 
     return None
 
 
 
-
 @app.route('/', methods=['GET', 'POST'])
+
+@requires_auth  # <--- THIS IS THE LOCK. We attached the auth check here.
 
 def index():
 
     BUCKET_NAME = get_bucket_name()
 
+    
+
     if not BUCKET_NAME:
 
-        return "Error: Storage Bucket not found. Check Terraform setup."
+        return "Error: Storage Bucket not found. Check IAM Permissions."
 
 
 
     if request.method == 'POST':
-
-        # UPLOAD LOGIC
 
         if 'file' not in request.files:
 
@@ -75,29 +128,31 @@ def index():
 
 
 
-    # LIST LOGIC
-
-    # Get objects from S3
-
-    objects = s3.list_objects_v2(Bucket=BUCKET_NAME)
+    # List Objects
 
     files = []
 
-    if 'Contents' in objects:
+    try:
 
-        for obj in objects['Contents']:
+        objects = s3.list_objects_v2(Bucket=BUCKET_NAME)
 
-            # GENERATE PRESIGNED URL (Secure View)
+        if 'Contents' in objects:
 
-            url = s3.generate_presigned_url('get_object',
+            for obj in objects['Contents']:
 
-                                            Params={'Bucket': BUCKET_NAME,
+                url = s3.generate_presigned_url('get_object',
 
-                                                    'Key': obj['Key']},
+                                                Params={'Bucket': BUCKET_NAME,
 
-                                            ExpiresIn=300) # Link valid for 5 mins
+                                                        'Key': obj['Key']},
 
-            files.append({'name': obj['Key'], 'url': url, 'size': obj['Size']})
+                                                ExpiresIn=300)
+
+                files.append({'name': obj['Key'], 'url': url, 'size': obj['Size']})
+
+    except Exception as e:
+
+        return f"Error listing files: {e}"
 
 
 
