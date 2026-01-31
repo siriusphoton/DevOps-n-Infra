@@ -11,6 +11,8 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 
+s3 = boto3.client('s3')
+
 
 # CONFIGURATION
 
@@ -18,14 +20,12 @@ app = Flask(__name__)
 
 # or fallback to listing buckets if not set (Lazy discovery)
 
-s3 = boto3.client('s3')
 
 
 
 def get_bucket_name():
 
     # Find the bucket that starts with "secure-doc-storage"
-
     buckets = s3.list_buckets()
 
     for b in buckets['Buckets']:
@@ -38,13 +38,12 @@ def get_bucket_name():
 
 
 
-BUCKET_NAME = get_bucket_name()
-
-
 
 @app.route('/', methods=['GET', 'POST'])
 
 def index():
+
+    BUCKET_NAME = get_bucket_name()
 
     if not BUCKET_NAME:
 

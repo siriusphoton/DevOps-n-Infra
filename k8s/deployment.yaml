@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+
+  name: secure-doc-app
+
+spec:
+
+  replicas: 2
+
+  selector:
+
+    matchLabels:
+
+      app: secure-doc
+
+  template:
+
+    metadata:
+
+      labels:
+
+        app: secure-doc
+
+    spec:
+
+      containers:
+
+      - name: secure-doc-container
+
+        # REPLACE THIS WITH YOUR ACTUAL ECR URL FROM PHASE 6
+
+        image: 725537514866.dkr.ecr.us-east-1.amazonaws.com/secure-doc-repo:v2 
+
+        ports:
+
+        - containerPort: 5000
+
+        env:
+
+        - name: AWS_DEFAULT_REGION
+
+          value: "us-east-1"
