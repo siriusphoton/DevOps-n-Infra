@@ -162,7 +162,9 @@
 
         user: ubuntu
 
-        minute: "*/2" # Run every 2 minutes for testing (so you don't wait long)
+        minute: "0"
+
+        hour: "0"
 
         job: "/home/ubuntu/backup_logs.sh"
 
