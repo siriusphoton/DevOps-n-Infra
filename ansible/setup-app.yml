@@ -125,3 +125,115 @@
       async: 45
 
       poll: 0
+
+# --- Project 19: Automated S3 Backup ---
+
+    - name: Create Backup Script
+
+      copy:
+
+        dest: /home/ubuntu/backup_logs.sh
+
+        mode: '0755'
+
+        owner: ubuntu
+
+        content: |
+
+          #!/bin/bash
+
+          TIMESTAMP=$(date +%F-%H%M)
+
+          # Create a backup of the app log
+
+          tar -czf /tmp/logs-$TIMESTAMP.tar.gz /var/www/html/app/app.log
+
+          # Upload to S3 (Replace with your ACTUAL Bucket Name)
+
+          aws s3 cp /tmp/logs-$TIMESTAMP.tar.gz s3://secure-doc-storage-c53a11b3/backups/
+
+    
+
+    - name: Schedule Backup Cron Job
+
+      cron:
+
+        name: "Backup App Logs"
+
+        user: ubuntu
+
+        minute: "*/2" # Run every 2 minutes for testing (so you don't wait long)
+
+        job: "/home/ubuntu/backup_logs.sh"
+
+
+
+    # --- Project 17: CloudWatch Logs Agent ---
+
+    - name: Download CloudWatch Agent
+
+      get_url:
+
+        url: https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+
+        dest: /tmp/amazon-cloudwatch-agent.deb
+
+
+
+    - name: Install CloudWatch Agent
+
+      apt:
+
+        deb: /tmp/amazon-cloudwatch-agent.deb
+
+
+
+    - name: Create CloudWatch Config
+
+      copy:
+
+        dest: /opt/aws/amazon-cloudwatch-agent/bin/config.json
+
+        content: |
+
+          {
+
+            "agent": {
+
+              "run_as_user": "root"
+
+            },
+
+            "logs": {
+
+              "logs_collected": {
+
+                "files": {
+
+                  "collect_list": [
+
+                    {
+
+                      "file_path": "/var/www/html/app/app.log",
+
+                      "log_group_name": "secure-doc-app-logs",
+
+                      "log_stream_name": "{instance_id}"
+
+                    }
+
+                  ]
+
+                }
+
+              }
+
+            }
+
+          }
+
+
+
+    - name: Start CloudWatch Agent
+
+      shell: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json -s
