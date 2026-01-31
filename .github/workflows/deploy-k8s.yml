@@ -1,0 +1,107 @@
+name: Deploy to EKS
+
+
+
+on:
+
+  push:
+
+    branches: [ "main" ]
+
+    paths:
+
+      - 'app/**'        # Only run if App code changes
+
+      - 'k8s/**'        # Or if K8s config changes
+
+
+
+jobs:
+
+  deploy:
+
+    name: Build & Deploy
+
+    runs-on: ubuntu-latest
+
+    
+
+    steps:
+
+    - name: Checkout Code
+
+      uses: actions/checkout@v3
+
+
+
+    - name: Configure AWS Credentials
+
+      uses: aws-actions/configure-aws-credentials@v2
+
+      with:
+
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+        aws-region: us-east-1
+
+
+
+    - name: Login to Amazon ECR
+
+      id: login-ecr
+
+      uses: aws-actions/amazon-ecr-login@v1
+
+
+
+    - name: Build, Tag, and Push Image to ECR
+
+      env:
+
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+
+        ECR_REPOSITORY: secure-doc-repo
+
+        IMAGE_TAG: ${{ github.sha }} # Uses the Commit ID (e.g., a1b2c3d)
+
+      run: |
+
+        cd app
+
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+
+
+    - name: Update EKS Cluster
+
+      env:
+
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+
+        ECR_REPOSITORY: secure-doc-repo
+
+        IMAGE_TAG: ${{ github.sha }}
+
+      run: |
+
+        # 1. Connect to Cluster
+
+        aws eks update-kubeconfig --name secure-doc-cluster --region us-east-1
+
+        
+
+        # 2. Update the Deployment Image
+
+        # This command finds the 'secure-doc-container' and sets its image to the new one we just built
+
+        kubectl set image deployment/secure-doc-app secure-doc-container=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+        
+
+        # 3. Wait for Rollout to finish
+
+        kubectl rollout status deployment/secure-doc-app
