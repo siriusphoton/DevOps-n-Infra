@@ -88,7 +88,19 @@ def get_bucket_name():
 
     return None
 
+@app.before_request
 
+def before_request():
+
+    # If the request is HTTP (not HTTPS) and not running locally, Redirect.
+
+    # AWS Load Balancers send a header 'X-Forwarded-Proto' telling us the original protocol.
+
+    if request.headers.get('X-Forwarded-Proto') == 'http':
+
+        url = request.url.replace('http://', 'https://', 1)
+
+        return redirect(url, code=301)
 
 @app.route('/', methods=['GET', 'POST'])
 
