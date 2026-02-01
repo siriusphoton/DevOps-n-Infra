@@ -12,7 +12,7 @@ metadata:
 
     service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:725537514866:certificate/f87d2275-ba00-48ce-aac6-cba3069531e7"
 
-    
+    service.beta.kubernetes.io/aws-load-balancer-security-groups: "sg-082d88a538bbc6cdd" 
 
     # 2. Configure the Backend (Talk to Pods over HTTP)
 

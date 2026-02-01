@@ -111,3 +111,81 @@ resource "aws_route_table_association" "b" {
   route_table_id = aws_route_table.eks_rt.id
 
 }
+
+resource "aws_security_group" "lb_sg" {
+
+  name = "secure-doc-k8s-lb-sg"
+
+  description = "Allow HTTP and HTTPS to Kubernetes Load Balancer"
+
+  vpc_id = aws_vpc.eks_vpc.id
+
+
+
+  # 1. Allow HTTPS (The one you were missing)
+
+  ingress {
+
+    from_port = 443
+
+    to_port = 443
+
+    protocol = "tcp"
+
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+
+
+
+  # 2. Allow HTTP (For the redirect)
+
+  ingress {
+
+    from_port = 80
+
+    to_port = 80
+
+    protocol = "tcp"
+
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+
+
+
+  # 3. Allow Outbound (Standard)
+
+  egress {
+
+    from_port = 0
+
+    to_port = 0
+
+    protocol = "-1"
+
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+
+
+
+  tags = {
+
+    Name = "secure-doc-k8s-lb-sg"
+
+    "kubernetes.io/cluster/secure-doc-cluster" = "owned"
+
+  }
+
+}
+
+
+
+# Output the ID so we can copy it easily
+
+output "load_balancer_sg_id" {
+
+  value = aws_security_group.lb_sg.id
+
+}
