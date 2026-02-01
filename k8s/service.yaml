@@ -8,9 +8,29 @@ metadata:
 
   annotations:
 
-    # This annotation tells AWS to create a Classic Load Balancer
+    # 1. Tell AWS to use the Certificate you just uploaded
 
-    service.beta.kubernetes.io/aws-load-balancer-type: "clb"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:725537514866:certificate/f87d2275-ba00-48ce-aac6-cba3069531e7"
+
+    
+
+    # 2. Configure the Backend (Talk to Pods over HTTP)
+
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+
+    
+
+    # 3. Configure the Frontend (Talk to Internet over HTTPS)
+
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+
+    
+
+    # 4. (Optional) Connection Draining helps with updates
+
+    service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled: "true"
+
+
 
 spec:
 
@@ -22,7 +42,23 @@ spec:
 
   ports:
 
-    - protocol: TCP
+    # 5. Define the Port Mapping
+
+    - name: https
+
+      protocol: TCP
+
+      port: 443       # Internet hits this
+
+      targetPort: 5000 # Forward to Container Port
+
+    
+
+    # 6. Keep Port 80 Open? (To redirect, we usually need it open, or we can remove it to block)
+
+    - name: http
+
+      protocol: TCP
 
       port: 80
 
